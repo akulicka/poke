@@ -145,7 +145,9 @@ const Game = ({
           </>
         )}
         
-        <Typography variant="body2" sx={{ textAlign: 'center', mb: 1, color: 'green' }}> Pokemon loaded! Click cards to play.</Typography>
+        <Typography variant="h4" sx={{ textAlign: 'center', mb: 1, color: 'Black' }}>
+          {gameWon ? `You won the round in ${formatTime(gameTime)}` : 'Click cards to play!'}
+        </Typography>
         
       </Stack>
   );
