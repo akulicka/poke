@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Container, 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent, 
-  CardMedia, 
-  Box,
-  Button,
-  Chip,
-  IconButton
+  Stack,
+  Box
 } from '@mui/material';
-import { VolumeUp, VolumeOff } from '@mui/icons-material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import Game from './Components/Game';
+import { REGION_IMAGES, GAME_CONFIG, FALLBACK_REGIONS, REGION_AUDIO } from './Util/constants';
+import { fetchGenerations, fetchPokemonByGeneration } from './Util/PokeApi';
+import Menu from './Components/Menu';
+import Loading from './Components/Loading';
+import AudioPlayer from './Components/AudioPlayer';
+import { AppProvider, useApp } from './Util/Context';
 
 const theme = createTheme({
   palette: {
@@ -25,182 +23,149 @@ const theme = createTheme({
   },
 });
 
-const PokemonCard = ({ pokemon, isFlipped, isMatched, onClick }) => {
-  const shouldShowPokemon = isFlipped || isMatched;
-  
+const AppContent = () => {
+  const { currentRegion, setCurrentRegion } = useApp();
+  const [gameStarted, setGameStarted] = useState(false);
+  const [pokemon, setPokemon] = useState([]);
+  const [regions, setRegions] = useState(['all']);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch available generations from PokeAPI
+  useEffect(() => {
+    const loadGenerations = async () => {
+      try {
+        const regionList = await fetchGenerations();
+        setRegions(regionList);
+      } catch (error) {
+        // Fallback to hardcoded values
+        setRegions(FALLBACK_REGIONS);
+      }
+    };
+
+    loadGenerations();
+  }, []);
+
+  // Format time as MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Fetch Pokemon by generation - memoized to prevent infinite loops
+  const fetchPokemonByGenerationHandler = useCallback(async (region = currentRegion) => {
+    setIsLoading(true);
+    
+    const targetRegion = region || currentRegion;
+    
+    try {
+      const pokemonData = await fetchPokemonByGeneration(targetRegion, regions, GAME_CONFIG);
+      setPokemon(pokemonData);
+      
+      if (region && region !== currentRegion) {
+        setCurrentRegion(region);
+      }
+    } catch (error) {
+      // Handle error silently
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentRegion, regions]);
+
+  // Fetch Pokemon data when regions are loaded and currentRegion changes
+  useEffect(() => {
+    if (regions.length > 1) {
+      fetchPokemonByGenerationHandler();
+    }
+  }, [currentRegion, regions, fetchPokemonByGenerationHandler]);
+
+  // Fetch fresh Pokemon when game starts (separate effect)
+  useEffect(() => {
+    if (gameStarted && regions.length > 1) {
+      fetchPokemonByGenerationHandler();
+    }
+  }, [gameStarted]);
+
+  // Get current background image
+  const getBackgroundImage = () => {
+    const regionIndex = regions.indexOf(currentRegion);
+    return regionIndex >= 0 && regionIndex < REGION_IMAGES.length ? REGION_IMAGES[regionIndex] : null;
+  };
+
+  const handleSaveAndQuit = () => {
+    // Profile is automatically saved via Context useEffect
+    // Just return to menu
+    setGameStarted(false);
+  };
+
+  // Get current audio source
+  const getCurrentAudio = () => {
+    // Play PokemonTheme.mp3 on main menu
+    if (!gameStarted) {
+      return '/PokemonTheme.mp3';
+    }
+    
+    // Play region-specific music during game
+    const regionIndex = regions.indexOf(currentRegion);
+    return regionIndex >= 0 && regionIndex < REGION_AUDIO.length ? REGION_AUDIO[regionIndex] : null;
+  };
+
   return (
-    <Card 
-      sx={{ 
-        height: 200, 
-        cursor: 'pointer',
-        opacity: isMatched ? 0.5 : 1,
-        '&:hover': {
-          transform: 'scale(1.05)',
-        }
-      }}
-      onClick={onClick}
-    >
-      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        {shouldShowPokemon ? (
-          <>
-            <CardMedia
-              component="img"
-              height="120"
-              image={pokemon.image}
-              alt={pokemon.name}
-              sx={{ objectFit: 'contain' }}
+    <>
+      {/* Audio Player - Always mounted to prevent interruption during loading */}
+      <AudioPlayer audioSrc={getCurrentAudio()} loop={true} />
+      
+      <Box 
+        sx={{ 
+          backgroundImage: `url(${getBackgroundImage()})`,
+          backgroundSize: '100% 100%',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+          position: 'fixed',
+          minHeight: '100vh',
+          width: '100vw',
+          top: 0,
+          left: 0,
+          zIndex: -1
+        }}>
+      { isLoading ? <Loading /> : (
+        <>
+      { !gameStarted ? <Menu setGameStarted={setGameStarted}/> : (
+        <Stack sx={{ 
+          height: '100%',
+          width: '100%',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <Box sx={{ flexGrow: 1 }}>
+            <Game
+              regions={regions}
+              pokemon={pokemon}
+              isLoading={isLoading}
+              formatTime={formatTime}
+              onNewGame={fetchPokemonByGenerationHandler}
+              onSaveAndQuit={handleSaveAndQuit}
             />
-            <Typography variant="h6" component="div">
-              {pokemon.name}
-            </Typography>
-          </>
-        ) : (
-          <Typography variant="h4" component="div">
-            ?
-          </Typography>
+          </Box>
+        </Stack>
         )}
-      </CardContent>
-    </Card>
+      </>
+      )}    
+
+      </Box>
+    </>
+
   );
 };
 
 const App = () => {
-  const [pokemon, setPokemon] = useState([]);
-  const [flippedCards, setFlippedCards] = useState([]);
-  const [matchedCards, setMatchedCards] = useState([]);
-  const [moves, setMoves] = useState(0);
-  const [gameWon, setGameWon] = useState(false);
-  const [isVolumeDisabled, setIsVolumeDisabled] = useState(false);
-
-  // Fetch random Pokemon data
-  const fetchRandomPokemon = async () => {
-    // Generate 8 random Pokemon IDs (Pokemon go up to ~1000+)
-    const pokemonIds = [];
-    while (pokemonIds.length < 8) {
-      const randomId = Math.floor(Math.random() * 1000) + 1;
-      if (!pokemonIds.includes(randomId)) {
-        pokemonIds.push(randomId);
-      }
-    }
-    
-    const pokemonData = [];
-    
-    for (const id of pokemonIds) {
-      try {
-        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-        const data = await response.json();
-        pokemonData.push({
-          id: data.id,
-          name: data.name,
-          image: data.sprites.front_default,
-          cry: data.cries?.latest || null
-        });
-      } catch (error) {
-        console.error(`Error fetching Pokemon ${id}:`, error);
-      }
-    }
-    
-    // Create pairs and shuffle
-    const pairs = [...pokemonData, ...pokemonData];
-    const shuffled = pairs.sort(() => Math.random() - 0.5);
-    setPokemon(shuffled);
-  };
-
-  // Fetch Pokemon data on initial load
-  useEffect(() => fetchRandomPokemon(), []);
-
-  const handleCardClick = (index) => {
-    if (flippedCards.length === 2 || flippedCards.includes(index) || matchedCards.includes(index)) {
-      return;
-    }
-
-    const newFlippedCards = [...flippedCards, index];
-    setFlippedCards(newFlippedCards);
-
-    if (newFlippedCards.length === 2) {
-      setMoves(moves + 1);
-      
-      const [firstIndex, secondIndex] = newFlippedCards;
-      const firstPokemon = pokemon[firstIndex];
-      const secondPokemon = pokemon[secondIndex];
-
-      if (firstPokemon.id === secondPokemon.id) {
-        // Match found
-        setMatchedCards([...matchedCards, firstIndex, secondIndex]);
-        setFlippedCards([]); // Clear flipped cards immediately
-        
-        // Play Pokemon cry if available and volume is enabled
-        if (firstPokemon.cry && !isVolumeDisabled) {
-          const audio = new Audio(firstPokemon.cry);
-          audio.play().catch(error => console.log('Could not play audio:', error));
-        }
-        
-        // Check if game is won
-        if (matchedCards.length + 2 === pokemon.length) {
-          setGameWon(true);
-        }
-      } else {
-        // No match, flip cards back after delay
-        setTimeout(() => {
-          setFlippedCards([]);
-        }, 1000);
-      }
-    }
-  };
-
-  const resetGame = async () => {
-    await fetchRandomPokemon();
-    setFlippedCards([]);
-    setMatchedCards([]);
-    setMoves(0);
-    setGameWon(false);
-  };
-
   return (
     <ThemeProvider theme={theme}>
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h3" component="h1" gutterBottom>
-            Pokemon Matching Game
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
-            <Chip label={`Moves: ${moves}`} color="primary" />
-            <Chip 
-              label={`Matched: ${matchedCards.length / 2}/${pokemon.length / 2}`} 
-              color="secondary" 
-            />
-          </Box>
-          {gameWon && (
-            <Typography variant="h5" color="success.main" sx={{ mb: 2 }}>
-              Congratulations! You won in {moves} moves!
-            </Typography>
-          )}
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
-            <Button variant="contained" onClick={resetGame}>
-              New Game
-            </Button>
-            <IconButton 
-              onClick={() => setIsVolumeDisabled(!isVolumeDisabled)}
-              color="primary"
-            >
-              {isVolumeDisabled ? <VolumeOff /> : <VolumeUp />}
-            </IconButton>
-          </Box>
-        </Box>
-
-        <Grid container spacing={2}>
-          {pokemon.map((poke, index) => (
-            <Grid item xs={6} sm={4} md={3} key={index}>
-              <PokemonCard
-                pokemon={poke}
-                isFlipped={flippedCards.includes(index)}
-                isMatched={matchedCards.includes(index)}
-                onClick={() => handleCardClick(index)}
-              />
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
     </ThemeProvider>
   );
 };
