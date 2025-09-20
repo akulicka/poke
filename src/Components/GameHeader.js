@@ -1,37 +1,33 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Box,
+  AppBar,
+  Toolbar,
   Typography,
-  Chip
+  Chip,
+  Stack
 } from '@mui/material';
 
-const GameHeader = ({ 
-  gameTime, 
-  moves, 
-  matchedCards, 
-  pokemon, 
-  gameWon, 
-  formatTime 
-}) => {
+  // Timer effect
+
+const GameHeader = ({ gameTime, gameStarted, moves, gameWon, formatTime }) => {
+  // No timer logic here, just display
+    
   return (
-    <Box sx={{ position: 'relative', zIndex: 1 }}>
-      {/* <Typography variant="h3" component="h1" gutterBottom>
-        Pokemon Matching Game
-      </Typography> */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
-        <Chip label={`Time: ${formatTime(gameTime)}`} color="primary" />
-        <Chip label={`Moves: ${moves}`} color="primary" />
-        <Chip 
-          label={`Matched: ${matchedCards.length / 2}/${pokemon.length / 2}`} 
-          color="secondary" 
-        />
-      </Box>
-      {gameWon && (
-        <Typography variant="h5" color="success.main" sx={{ mb: 2 }}>
-          Congratulations! You won in {moves} moves and {formatTime(gameTime)}!
-        </Typography>
-      )}
-    </Box>
+    <AppBar position="static" color="default" elevation={1} sx={{
+      backgroundColor: 'rgba(255, 255, 255, 0.35)',}}>
+      <Toolbar>
+        <Stack direction="row" spacing={2} justifyContent="center" alignItems="center">
+          <Chip label={`Time: ${formatTime(gameTime)}`} color="primary" />
+          <Chip label={`Moves: ${moves}`} color="primary" />
+          
+          {gameWon && (
+            <Typography variant="h6" color="success.main" sx={{ ml: 'auto' }}>
+              Congratulations! You won in {moves} moves and {formatTime(gameTime)}!
+            </Typography>
+          )}
+        </Stack>
+      </Toolbar>
+    </AppBar>
   );
 };
 

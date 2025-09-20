@@ -23,9 +23,12 @@ const PokemonCard = ({ pokemon, isFlipped, isMatched, onClick }) => {
     <Card 
       data-card-index={pokemon.id}
       sx={{ 
-        height: 200, 
+        minWidth: 150,
+        minHeight: 150,
+        maxWidth: 150,
+        maxHeight: 150,
         cursor: 'pointer',
-        opacity: isMatched ? 0.5 : 1,
+        opacity: isMatched ? 0.5 : 0.8,
         position: 'relative',
         zIndex: 3,
         '&:hover': {
@@ -39,10 +42,13 @@ const PokemonCard = ({ pokemon, isFlipped, isMatched, onClick }) => {
           <>
             <CardMedia
               component="img"
-              height="120"
               image={pokemon.image}
               alt={pokemon.name}
-              sx={{ objectFit: 'contain' }}
+              sx={{ 
+                
+              maxWidth: 100,
+              maxHeight: 100,
+                objectFit: 'contain' }}
             />
             <Typography variant="h6" component="div">
               {pokemon.name}

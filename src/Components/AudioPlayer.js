@@ -6,17 +6,46 @@ import {
   IconButton
 } from '@mui/material';
 import { VolumeUp, VolumeOff } from '@mui/icons-material';
-import { REGION_AUDIO, GAME_CONFIG } from '../constants';
+import { useApp } from '../Util/Context';
 
 // AudioControls component for volume management
-export const AudioControls = ({ volume, setVolume }) => {
+export const AudioControls = ({ compact = false }) => {
+  const { volume, setVolume } = useApp();
   const handleVolumeChange = (event, newValue) => {
     setVolume(newValue);
   };
 
   const handleMuteToggle = () => {
     setVolume(volume > 0 ? 0 : 0.5); // Toggle between muted and 50%
+    console.log('Volume:', volume);
   };
+
+  if (compact) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <IconButton 
+          onClick={handleMuteToggle}
+          color="primary"
+          size="small"
+        >
+          {volume > 0 ? <VolumeUp /> : <VolumeOff />}
+        </IconButton>
+        <Slider
+          value={volume}
+          onChange={handleVolumeChange}
+          min={0}
+          max={1}
+          step={0.1}
+          sx={{ width: 80 }}
+          valueLabelDisplay="auto"
+          valueLabelFormat={(value) => `${Math.round(value * 100)}%`}
+        />
+        <Typography variant="body2" sx={{ minWidth: '40px' }}>
+          {Math.round(volume * 100)}%
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -47,78 +76,61 @@ export const AudioControls = ({ volume, setVolume }) => {
   );
 };
 
-const AudioPlayer = ({ 
-  selectedRegion, 
-  regions, 
-  volume, 
-  pokemonCry 
+export const AudioPlayer = ({ 
+  audioSrc,
+  loop = false,
+  autoPlay = false,
+  onEnded = null 
 }) => {
-  const backgroundAudioRef = useRef(null);
-  const cryAudioRef = useRef(null);
+  const audioRef = useRef(null);
+  const { volume } = useApp();
 
-  // Handle background music based on region and volume
   useEffect(() => {
-    if (selectedRegion !== 'all' && volume > 0) {
-      const regionIndex = regions.indexOf(selectedRegion) - 1; // -1 because 'all' is at index 0
-      if (regionIndex >= 0 && regionIndex < REGION_AUDIO.length) {
-        // Stop previous audio
-        if (backgroundAudioRef.current) {
-          backgroundAudioRef.current.pause();
-          backgroundAudioRef.current.currentTime = 0;
-        }
-        
-        // Play new audio
-        const audio = new Audio(REGION_AUDIO[regionIndex]);
-        audio.loop = true;
-        audio.volume = volume * GAME_CONFIG.BACKGROUND_VOLUME;
-        audio.play().catch(error => console.log('Could not play background audio:', error));
-        backgroundAudioRef.current = audio;
+    if (audioSrc && volume > 0) {
+      // Stop previous audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
       }
+      
+      // Play new audio
+      const audio = new Audio(audioSrc);
+      audio.loop = loop;
+      audio.volume = volume;
+      audio.autoplay = autoPlay;
+      
+      if (onEnded) {
+        audio.addEventListener('ended', onEnded);
+      }
+      
+      audio.play().catch(error => console.log('Could not play audio:', error));
+      audioRef.current = audio;
     } else {
-      // Stop audio when 'all' is selected or volume is 0
-      if (backgroundAudioRef.current) {
-        backgroundAudioRef.current.pause();
-        backgroundAudioRef.current = null;
+      // Stop audio when no source or volume is 0
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
     }
-  }, [selectedRegion, volume, regions]);
+  }, [audioSrc, volume, loop, autoPlay]);
 
-  // Update background audio volume when volume changes
+  // Update volume when it changes
   useEffect(() => {
-    if (backgroundAudioRef.current) {
-      backgroundAudioRef.current.volume = volume * GAME_CONFIG.BACKGROUND_VOLUME;
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
     }
   }, [volume]);
 
-  // Play Pokemon cry when provided
-  useEffect(() => {
-    if (pokemonCry && volume > 0) {
-      // Stop any existing cry audio
-      if (cryAudioRef.current) {
-        cryAudioRef.current.pause();
-      }
-      
-      const audio = new Audio(pokemonCry);
-      audio.volume = volume;
-      audio.play().catch(error => console.log('Could not play Pokemon cry:', error));
-      cryAudioRef.current = audio;
-    }
-  }, [pokemonCry, volume]);
-
-  // Cleanup audio on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
-      if (backgroundAudioRef.current) {
-        backgroundAudioRef.current.pause();
-      }
-      if (cryAudioRef.current) {
-        cryAudioRef.current.pause();
+      if (audioRef.current) {
+        audioRef.current.pause();
       }
     };
   }, []);
 
-  // This component doesn't render anything - it's just for audio management
-  return null;
+  return null; // This component doesn't render anything
 };
 
 export default AudioPlayer;

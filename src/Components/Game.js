@@ -1,167 +1,137 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Container,
+  Stack,
   Typography,
   Grid,
-  Box
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import GameHeader from './GameHeader';
-import PokemonCard from './PokemonCard';
-import { GAME_CONFIG } from '../constants';
+import GameGrid from './GameGrid';
+import { GAME_CONFIG, REGION_AUDIO, FALLBACK_REGIONS } from '../Util/constants';
+import Collection from './Collection';
+import { COMPONENT_STYLES } from '../Util/styles';
+import AudioPlayer from './AudioPlayer';
 
 const Game = ({ 
   pokemon,
   isLoading,
   formatTime,
-  getBackgroundImage,
-  volume,
-  setPokemonCry,
-  onGameStart,
-  onGameReset
+  onNewGame,
+  currentRegion,
+  setCurrentRegion,
+  regions,
 }) => {
 
-  const [flippedCards, setFlippedCards] = useState([]);
-  const [matchedCards, setMatchedCards] = useState([]);
   const [moves, setMoves] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [gameTime, setGameTime] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState('all');
 
-  // Timer effect
-  useEffect(() => {
-    let interval = null;
-    if (gameStarted && !gameWon) {
-      interval = setInterval(() => {
-        setGameTime(time => time + 1);
-      }, 1000);
-    } else if (!gameStarted || gameWon) {
-      clearInterval(interval);
-    }
-    return () => clearInterval(interval);
-  }, [gameStarted, gameWon]);
+  const incMoves = () => {
+    setMoves(moves + 1);
+  };
 
-  // Reset game when pokemon changes
-  useEffect(() => {
-    setFlippedCards([]);
-    setMatchedCards([]);
+  // Handle new round with selected region
+  const handleNewRound = useCallback(() => {
+    // Reset game state
     setMoves(0);
     setGameWon(false);
     setGameTime(0);
     setGameStarted(false);
-  }, [pokemon]);
-
-  const handleCardClick = (index) => {
-    console.log('Card clicked:', index, 'Pokemon:', pokemon[index]);
     
-    if (flippedCards.length === 2 || flippedCards.includes(index) || matchedCards.includes(index)) {
-      console.log('Card click ignored - already flipped/matched or two cards already flipped');
-      return;
+    // Update the current playing region to match selection
+    setCurrentRegion(selectedRegion);
+    
+    // Trigger new game with current region selection
+    onNewGame(selectedRegion);
+  }, [selectedRegion, onNewGame]);
+
+  const audio = useMemo(() => REGION_AUDIO[regions.indexOf(currentRegion)], [currentRegion]);
+  // Reset game when pokemon changes
+  useEffect(() => {
+    setMoves(0);
+    setGameWon(false);
+    setGameTime(0);
+    setGameStarted(false);
+  }, []);
+  useEffect(() => { console.log('selectedRegion', selectedRegion); }, [selectedRegion]);
+  useEffect(() => { console.log('currentRegion', currentRegion); }, [currentRegion]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      const timer = setTimeout(() => setGameStarted(true), 2000);
+      return () => clearTimeout(timer);
     }
+  }, [isLoading]);
 
-    // Start game on first click
-    if (!gameStarted) {
-      setGameStarted(true);
-      onGameStart?.();
+  useEffect(() => {
+    let interval = null;
+    if (gameStarted && !gameWon) {
+      interval = setInterval(() => {
+        setGameTime(gameTime => gameTime + 1);
+      }, 1000);
     }
+    return () => clearInterval(interval);
+  }, [gameStarted, gameWon]);
 
-    const newFlippedCards = [...flippedCards, index];
-    setFlippedCards(newFlippedCards);
-
-    if (newFlippedCards.length === 2) {
-      setMoves(moves + 1);
-      
-      const [firstIndex, secondIndex] = newFlippedCards;
-      const firstPokemon = pokemon[firstIndex];
-      const secondPokemon = pokemon[secondIndex];
-
-      if (firstPokemon.id === secondPokemon.id) {
-        // Match found
-        setMatchedCards([...matchedCards, firstIndex, secondIndex]);
-        setFlippedCards([]);
-        
-        // Trigger Pokemon cry playback
-        if (firstPokemon.cry && volume > 0) {
-          setPokemonCry(firstPokemon.cry);
-        }
-        
-        // Check if game is won
-        if (matchedCards.length + 2 === pokemon.length) {
-          setGameWon(true);
-        }
-      } else {
-        // No match, flip cards back after delay
-        setTimeout(() => {
-          setFlippedCards([]);
-        }, GAME_CONFIG.CARD_FLIP_DELAY);
-      }
-    }
-  };
   return (
-    <Container 
-      maxWidth="md" 
-      sx={{ 
-        py: 2,
-        backgroundImage: getBackgroundImage() ? `url(${getBackgroundImage()})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'repeat',
-        height: '100vh',
-        position: 'relative',
-        flexGrow: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}
-    >
-      {/* Add overlay for better text readability
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          zIndex: 0,
-          pointerEvents: 'none' // Allow clicks to pass through
-        }}
-      /> */}
-      
-      <GameHeader 
-        gameTime={gameTime}
-        moves={moves}
-        matchedCards={matchedCards}
-        pokemon={pokemon}
-        gameWon={gameWon}
-        formatTime={formatTime}
-      />
+      <Stack spacing={2} sx={{ flexGrow: 1 }}>
+        <GameHeader 
+          gameTime={gameTime}
+          gameStarted={gameStarted}
+          moves={moves}
+          gameWon={gameWon}
+          formatTime={formatTime}
+        />
 
-      {isLoading ? (
-        <Typography variant="h5" sx={{ textAlign: 'center', mt: 4 }}>
-          Loading Pokemon...
-        </Typography>
-      ) : (
-        <>
-          <Typography variant="body2" sx={{ textAlign: 'center', mb: 1, color: 'green' }}>
-            Pokemon loaded! Click cards to play.
-          </Typography>
-        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Grid container spacing={1} sx={{ position: 'relative', zIndex: 2, maxWidth: '100%' }}>
-            {pokemon.map((poke, index) => (
-              <Grid item xs={3} sm={3} md={3} key={index}>
-                <PokemonCard
-                  pokemon={poke}
-                  isFlipped={flippedCards.includes(index)}
-                  isMatched={matchedCards.includes(index)}
-                  onClick={() => handleCardClick(index)}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-        </>
-      )}
-    </Container>
+        {isLoading ? <Typography variant="h5" sx={{ textAlign: 'center', mt: 4 }}> Loading Pokemon...</Typography> : (
+          <>
+            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GameGrid  pokemon={pokemon} gameStarted={gameStarted} setGameStarted={setGameStarted} incMoves={incMoves} setGameWon={setGameWon}/>
+            </Box>
+            
+            {/* Next Round Button - Only visible when game is won */}
+            {gameWon && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mt: 2 }}>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Region</InputLabel>
+                  <Select
+                    value={selectedRegion}
+                    label="Region"
+                    onChange={(e) => setSelectedRegion(e.target.value)}
+                    sx={{ backgroundColor: 'rgba(255, 255, 255, 1.0)' }}
+                  >
+                    {regions.map((region, index) => (
+                      <MenuItem key={region} value={region}>
+                        {FALLBACK_REGIONS[index].charAt(0).toUpperCase() + FALLBACK_REGIONS[index].slice(1)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <Button 
+                  variant="contained" 
+                  size="large"
+                  onClick={handleNewRound}
+                >
+                  Next Round
+                </Button>
+              </Box>
+            )}
+          </>
+        )}
+        
+        {/* Use currentRegion instead of selectedRegion for audio */}
+        <AudioPlayer audioSrc={audio} loop={true} />
+        <Typography variant="body2" sx={{ textAlign: 'center', mb: 1, color: 'green' }}> Pokemon loaded! Click cards to play.</Typography>
+        
+      </Stack>
   );
 };
 

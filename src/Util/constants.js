@@ -1,6 +1,6 @@
 // Game configuration constants
 export const GAME_CONFIG = {
-  POKEMON_PAIRS: 8,
+  POKEMON_PAIRS: 2,
   MAX_POKEMON_ID: 1000,
   CARD_FLIP_DELAY: 1000,
   BACKGROUND_VOLUME: 0.3,
@@ -11,6 +11,7 @@ export const GAME_CONFIG = {
 
 // Region audio tracks
 export const REGION_AUDIO = [
+  '/Pokerap2.mp3',
   'https://vgmtreasurechest.com/soundtracks/pokemon-red-green-blue-yellow/xxzioxya/30%20Route%203.mp3',
   'https://nu.vgmsite.com/soundtracks/pokemon-gold-silver-crystal/brkurymq/46.%20Route%2034.mp3',
   'https://nu.vgmsite.com/soundtracks/pokemon-emerald-enhanced-soundtrack/wsqgwhokia/1-56%20Route%20113.mp3',
@@ -24,13 +25,14 @@ export const REGION_AUDIO = [
 
 // Region background images
 export const REGION_IMAGES = [
-  'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-kanto-region.jpg', 
-  'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-johto-region.jpg', 
-  'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-Hoenn-region.jpg', 
-  'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-sinnoh-region.jpg',
-  'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-unova-region.jpg',
-  'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-kalos-region.jpg',
-  'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-alola-region.jpg',
+  'https://images3.alphacoders.com/677/677583.png',
+  'https://i.ebayimg.com/images/g/v5YAAOSwI8JkuVtB/s-l1600.webp', 
+  'https://i.ebayimg.com/images/g/-LkAAOSwKdNkuVsS/s-l1600.webp', 
+  'https://i.ebayimg.com/images/g/dGMAAOSwpWBkuVr7/s-l1600.webp', 
+  'https://i.ebayimg.com/images/g/394AAOSwznxkuVtQ/s-l1600.webp',
+  'https://i.ebayimg.com/images/g/pqcAAOSwgFBkuVtj/s-l1600.webp',
+  'https://i.ebayimg.com/images/g/WboAAOSwdbdkuVsg/s-l1600.webp',
+  'https://i.ebayimg.com/images/g/4MkAAOSwieRkuVrN/s-l1600.webp',
   'https://static0.cbrimages.com/wordpress/wp-content/uploads/2021/05/pokemon-galar-region.jpg',
   'https://archives.bulbagarden.net/media/upload/f/fd/Paldea_artwork.png'
 ];
