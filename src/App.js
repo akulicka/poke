@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Typography, 
-  Container,
   Stack,
-  Box,
-  AppBar,
-  Toolbar,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Box
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import Navbar from './Components/Navbar';
 import Game from './Components/Game';
-import { REGION_IMAGES, GAME_CONFIG, FALLBACK_REGIONS } from './Util/constants';
+import { REGION_IMAGES, GAME_CONFIG, FALLBACK_REGIONS, REGION_AUDIO } from './Util/constants';
 import { fetchGenerations, fetchPokemonByGeneration } from './Util/PokeApi';
 import Menu from './Components/Menu';
-import Collection from './Components/Collection';
 import Loading from './Components/Loading';
+import AudioPlayer from './Components/AudioPlayer';
+import { AppProvider, useApp } from './Util/Context';
 
 const theme = createTheme({
   palette: {
@@ -32,13 +23,12 @@ const theme = createTheme({
   },
 });
 
-const App = () => {
+const AppContent = () => {
+  const { currentRegion, setCurrentRegion } = useApp();
   const [gameStarted, setGameStarted] = useState(false);
   const [pokemon, setPokemon] = useState([]);
-  const [currentRegion, setCurrentRegion] = useState('all'); // Add thi
   const [regions, setRegions] = useState(['all']);
   const [isLoading, setIsLoading] = useState(true);
-  const [collectionOpen, setCollectionOpen] = useState(false);
 
   // Fetch available generations from PokeAPI
   useEffect(() => {
@@ -47,7 +37,6 @@ const App = () => {
         const regionList = await fetchGenerations();
         setRegions(regionList);
       } catch (error) {
-        console.error('Error fetching generations:', error);
         // Fallback to hardcoded values
         setRegions(FALLBACK_REGIONS);
       }
@@ -63,35 +52,39 @@ const App = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Fetch Pokemon by generation - now accepts region parameter
-  const fetchPokemonByGenerationHandler = async (region = currentRegion) => {
+  // Fetch Pokemon by generation - memoized to prevent infinite loops
+  const fetchPokemonByGenerationHandler = useCallback(async (region = currentRegion) => {
     setIsLoading(true);
     
-    // Use the passed region or fall back to selectedRegion
     const targetRegion = region || currentRegion;
     
     try {
       const pokemonData = await fetchPokemonByGeneration(targetRegion, regions, GAME_CONFIG);
       setPokemon(pokemonData);
       
-      // Update background and music for the new region
       if (region && region !== currentRegion) {
-        setSelectedRegion(region);
+        setCurrentRegion(region);
       }
     } catch (error) {
-      console.error('Error fetching Pokemon data:', error);
+      // Handle error silently
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Fetch Pokemon data when regions are loaded and selectedRegion changes
-  useEffect(() => {
-    if (regions.length > 1) { // Ensure regions are loaded
-      fetchPokemonByGenerationHandler();
-    }
   }, [currentRegion, regions]);
 
+  // Fetch Pokemon data when regions are loaded and currentRegion changes
+  useEffect(() => {
+    if (regions.length > 1) {
+      fetchPokemonByGenerationHandler();
+    }
+  }, [currentRegion, regions, fetchPokemonByGenerationHandler]);
+
+  // Fetch fresh Pokemon when game starts (separate effect)
+  useEffect(() => {
+    if (gameStarted && regions.length > 1) {
+      fetchPokemonByGenerationHandler();
+    }
+  }, [gameStarted]);
 
   // Get current background image
   const getBackgroundImage = () => {
@@ -99,8 +92,29 @@ const App = () => {
     return regionIndex >= 0 && regionIndex < REGION_IMAGES.length ? REGION_IMAGES[regionIndex] : null;
   };
 
+  const handleSaveAndQuit = () => {
+    // Profile is automatically saved via Context useEffect
+    // Just return to menu
+    setGameStarted(false);
+  };
+
+  // Get current audio source
+  const getCurrentAudio = () => {
+    // Play PokemonTheme.mp3 on main menu
+    if (!gameStarted) {
+      return '/PokemonTheme.mp3';
+    }
+    
+    // Play region-specific music during game
+    const regionIndex = regions.indexOf(currentRegion);
+    return regionIndex >= 0 && regionIndex < REGION_AUDIO.length ? REGION_AUDIO[regionIndex] : null;
+  };
+
   return (
-    <ThemeProvider theme={theme}>
+    <>
+      {/* Audio Player - Always mounted to prevent interruption during loading */}
+      <AudioPlayer audioSrc={getCurrentAudio()} loop={true} />
+      
       <Box 
         sx={{ 
           backgroundImage: `url(${getBackgroundImage()})`,
@@ -125,12 +139,6 @@ const App = () => {
           display: 'flex',
           flexDirection: 'column'
         }}>
-          <Navbar 
-            regions={regions}
-            onNewGame={fetchPokemonByGenerationHandler}
-            setCollectionOpen={setCollectionOpen}
-          />
-          
           <Box sx={{ flexGrow: 1 }}>
             <Game
               regions={regions}
@@ -138,22 +146,26 @@ const App = () => {
               isLoading={isLoading}
               formatTime={formatTime}
               onNewGame={fetchPokemonByGenerationHandler}
-              getBackgroundImage={getBackgroundImage}
-              currentRegion={currentRegion}
-              setCurrentRegion={setCurrentRegion}
+              onSaveAndQuit={handleSaveAndQuit}
             />
           </Box>
         </Stack>
         )}
       </>
-      )}
-    </Box>
+      )}    
 
-      {/* Collection Dialog */}
-      <Collection 
-        open={collectionOpen} 
-        onClose={() => setCollectionOpen(false)} 
-      />
+      </Box>
+    </>
+
+  );
+};
+
+const App = () => {
+  return (
+    <ThemeProvider theme={theme}>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
     </ThemeProvider>
   );
 };

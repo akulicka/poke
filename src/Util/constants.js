@@ -1,6 +1,6 @@
 // Game configuration constants
 export const GAME_CONFIG = {
-  POKEMON_PAIRS: 2,
+  POKEMON_PAIRS: 8,
   MAX_POKEMON_ID: 1000,
   CARD_FLIP_DELAY: 1000,
   BACKGROUND_VOLUME: 0.3,

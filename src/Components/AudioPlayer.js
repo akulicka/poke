@@ -17,7 +17,6 @@ export const AudioControls = ({ compact = false }) => {
 
   const handleMuteToggle = () => {
     setVolume(volume > 0 ? 0 : 0.5); // Toggle between muted and 50%
-    console.log('Volume:', volume);
   };
 
   if (compact) {
@@ -83,33 +82,41 @@ export const AudioPlayer = ({
   onEnded = null 
 }) => {
   const audioRef = useRef(null);
+  const previousAudioSrcRef = useRef(null);
   const { volume } = useApp();
 
   useEffect(() => {
-    if (audioSrc && volume > 0) {
-      // Stop previous audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
+    // Only restart audio if the source actually changed
+    if (audioSrc !== previousAudioSrcRef.current) {
+      previousAudioSrcRef.current = audioSrc;
       
-      // Play new audio
-      const audio = new Audio(audioSrc);
-      audio.loop = loop;
-      audio.volume = volume;
-      audio.autoplay = autoPlay;
-      
-      if (onEnded) {
-        audio.addEventListener('ended', onEnded);
-      }
-      
-      audio.play().catch(error => console.log('Could not play audio:', error));
-      audioRef.current = audio;
-    } else {
-      // Stop audio when no source or volume is 0
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+      if (audioSrc && volume > 0) {
+        // Stop previous audio
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        
+        // Play new audio
+        const audio = new Audio(audioSrc);
+        audio.loop = loop;
+        audio.volume = volume;
+        audio.autoplay = autoPlay;
+        
+        if (onEnded) {
+          audio.addEventListener('ended', onEnded);
+        }
+        
+        audio.play().catch(error => {
+          // Handle audio play error silently
+        });
+        audioRef.current = audio;
+      } else {
+        // Stop audio when no source or volume is 0
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
       }
     }
   }, [audioSrc, volume, loop, autoPlay]);

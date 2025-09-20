@@ -9,7 +9,21 @@ export const COLORS = {
   darkOverlay: 'rgba(0, 0, 0, 0.95)',
   lightOverlay: 'rgba(255, 255, 255, 0.75)',
   border: 'rgba(255, 255, 255, 0.1)',
-  gold: '#FFD700'
+  gold: '#FFD700',
+  // High contrast color for brown backgrounds
+  highContrast: '#1a1a1a' // Dark gray/black for high contrast against #c8a681
+};
+
+// Function to get text color based on region
+export const getTextColorForRegion = (currentRegion) => {
+  // List of regions that have brownish backgrounds requiring high contrast
+  const brownBackgroundRegions = ['kanto', 'johto', 'hoenn', 'sinnoh', 'unova', 'kalos', 'alola', 'galar', 'paldea'];
+  
+  if (brownBackgroundRegions.includes(currentRegion)) {
+    return COLORS.highContrast;
+  }
+  
+  return COLORS.white; // Default white for other backgrounds
 };
 
 // Consolidated common styles
@@ -23,6 +37,109 @@ export const COMMON_STYLES = {
 
 // Only used component styles
 export const COMPONENT_STYLES = {
+  // Pokemon Card
+  pokemonCard: {
+    minWidth: 150,
+    minHeight: 150,
+    maxWidth: 150,
+    maxHeight: 150,
+    cursor: 'pointer',
+    opacity: 0.8,
+    position: 'relative',
+    zIndex: 3,
+    '&:hover': {
+      transform: 'scale(1.05)',
+      transition: COMMON_STYLES.transition
+    }
+  },
+
+  pokemonCardMatched: {
+    opacity: 0.5
+  },
+
+  pokemonCardContent: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    p: 1
+  },
+
+  pokemonCardImage: {
+    maxWidth: 100,
+    maxHeight: 100,
+    objectFit: 'contain',
+    display: 'block',
+    margin: '0 auto'
+  },
+
+  pokemonCardName: {
+    textAlign: 'center',
+    mt: 1,
+    fontSize: '0.9rem',
+    lineHeight: 1.2
+  },
+
+  pokemonCardQuestionMark: {
+    textAlign: 'center',
+    fontSize: '3rem'
+  },
+
+  // Card flip animation styles
+  pokemonCardFlipContainer: {
+    width: '100%', 
+    height: '100%', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    position: 'relative',
+    transformStyle: 'preserve-3d'
+  },
+
+  pokemonCardFlipSide: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backfaceVisibility: 'hidden',
+    transition: 'transform 0.6s ease-in-out'
+  },
+
+  pokemonCardFlipSideQuestion: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backfaceVisibility: 'hidden',
+    transition: 'transform 0.6s ease-in-out'
+  },
+
+  pokemonCardFlipSidePokemon: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backfaceVisibility: 'hidden',
+    transition: 'transform 0.6s ease-in-out'
+  },
+
+  pokemonCardNameContainer: {
+    height: '1.2em',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+
   // Collection Dialog
   collectionDialog: {
     backgroundColor: COLORS.darkOverlay,

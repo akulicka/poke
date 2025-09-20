@@ -30,6 +30,36 @@ export const fetchPokemonData = async (id) => {
   }
 };
 
+// Fetch Pokemon species data for descriptions
+export const fetchPokemonSpeciesData = async (id) => {
+  try {
+    const response = await fetch(`${API_BASE}/pokemon-species/${id}`);
+    const data = await response.json();
+    
+    // Find English description
+    const englishEntry = data.flavor_text_entries.find(entry => 
+      entry.language.name === 'en'
+    );
+    
+    return {
+      id: data.id,
+      name: data.name,
+      description: englishEntry ? englishEntry.flavor_text.replace(/\f/g, ' ') : 'No description available',
+      generation: data.generation.name,
+      captureRate: data.capture_rate
+    };
+  } catch (error) {
+    console.error(`Error fetching Pokemon species ${id}:`, error);
+    return {
+      id,
+      name: 'Unknown',
+      description: 'Description not available',
+      generation: 'unknown',
+      captureRate: 45
+    };
+  }
+};
+
 // Fetch Pokemon by generation
 export const fetchPokemonByGeneration = async (region, regions, gameConfig) => {
   let pokemonIds = [];
